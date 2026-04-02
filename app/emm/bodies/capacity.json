@@ -1,0 +1,11 @@
+{
+  "cluster": "Capacity",
+  "sections": {
+    "hero": { "label": "The Opportunity", "static_content": "Your demand potential is real, but execution bandwidth is the constraint. Capacity work creates operating leverage so growth does not depend on personal overextension." },
+    "foundation": { "label": "What You've Built", "static_content": "You have valuable channels and opportunities, but they compete for finite attention. Without systemization, quality drops and strategic consistency disappears." },
+    "gtm_strategy": { "label": "The Play", "static_content": "Create a leverage stack: content operating system, reusable campaign frameworks, decision rules, and delegated production so strategic voice stays high while execution scales." },
+    "roadmap": { "label": "90-Day Roadmap", "static_content": "Phase 1: simplify priorities and define operating cadence. Phase 2: document workflows and launch delegated execution. Phase 3: automate recurring motions and raise throughput." },
+    "work_weve_done": { "label": "Work We've Done", "static_content": "Opika has helped founder-led brands increase output quality and velocity by replacing heroic effort with repeatable systems and clear ownership." },
+    "ask": { "label": "What We're Asking", "static_content": "Commit to operational clarity for one quarter. You stay focused on strategic voice and insights; we build the systems that protect quality while expanding capacity." }
+  }
+}

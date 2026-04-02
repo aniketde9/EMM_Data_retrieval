@@ -1,0 +1,52 @@
+import os
+import uuid
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, HttpUrl
+
+from app.config import settings
+from app.utils.job_store import create_job, get_job
+from app.worker.tasks import run_emm_pipeline
+
+
+router = APIRouter()
+
+
+class SubmitRequest(BaseModel):
+    author_name: str
+    book_title: str
+    website_url: HttpUrl
+    linkedin_username: Optional[str] = None
+    amazon_url: HttpUrl
+
+
+@router.post("/submit")
+def submit(payload: SubmitRequest) -> dict:
+    job_id = str(uuid.uuid4())
+    inputs = payload.model_dump()
+    inputs["website_url"] = str(inputs["website_url"])
+    inputs["amazon_url"] = str(inputs["amazon_url"])
+    create_job(job_id, inputs)
+    run_emm_pipeline.delay(job_id=job_id, inputs=inputs)
+    return {"job_id": job_id, "status": "queued"}
+
+
+@router.get("/status/{job_id}")
+def status(job_id: str) -> dict:
+    job = get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
+
+
+@router.get("/download/{job_id}")
+def download(job_id: str) -> FileResponse:
+    job = get_job(job_id)
+    if not job or job.get("status") != "complete":
+        raise HTTPException(status_code=404, detail="File not available")
+    pdf_path = job.get("pdf_path") or os.path.join(settings.OUTPUT_DIR, f"{job_id}.pdf")
+    if not os.path.exists(pdf_path):
+        raise HTTPException(status_code=404, detail="PDF not found")
+    return FileResponse(pdf_path, media_type="application/pdf", filename=os.path.basename(pdf_path))

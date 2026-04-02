@@ -1,0 +1,11 @@
+{
+  "cluster": "Discovery",
+  "sections": {
+    "hero": { "label": "The Opportunity", "static_content": "Your book already carries trust, but your distribution system does not. Discovery is not about creating more ideas; it is about making existing ideas consistently visible to the right audience." },
+    "foundation": { "label": "What You've Built", "static_content": "You have real assets: a credible book, career authority, and audience signals across channels. The issue is fragmented visibility and weak continuity between these assets." },
+    "gtm_strategy": { "label": "The Play", "static_content": "Build one repeatable top-of-funnel engine: define 3 repeatable content angles, publish in a weekly cadence, convert attention to email, and route audience to one clear action." },
+    "roadmap": { "label": "90-Day Roadmap", "static_content": "Phase 1: audit channels and messaging. Phase 2: launch weekly publishing and list capture. Phase 3: optimize winning narratives and scale with repurposing." },
+    "work_weve_done": { "label": "Work We've Done", "static_content": "Opika has helped expertise-led brands translate dormant credibility into demand systems that compound. The common unlock is strategic consistency, not volume." },
+    "ask": { "label": "What We're Asking", "static_content": "A focused weekly collaboration: you provide authority and signal; we run strategy, execution, and iteration. A yes means committing to one system long enough to compound." }
+  }
+}

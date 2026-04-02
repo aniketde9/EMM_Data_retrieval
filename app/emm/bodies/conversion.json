@@ -1,0 +1,11 @@
+{
+  "cluster": "Conversion",
+  "sections": {
+    "hero": { "label": "The Opportunity", "static_content": "You have visibility and proof, but conversion pathways are leaking. Conversion work aligns demand signals with decisive offers, follow-up, and frictionless buyer movement." },
+    "foundation": { "label": "What You've Built", "static_content": "Your market already pays attention. The bottleneck is not awareness but unclear sequencing between content, trust moments, and monetizable next steps." },
+    "gtm_strategy": { "label": "The Play", "static_content": "Engineer the mid-funnel: tighten offer architecture, map objection handling into content, and deploy email and call-to-action sequences that move readers from interest to commitment." },
+    "roadmap": { "label": "90-Day Roadmap", "static_content": "Phase 1: conversion diagnostics and message hierarchy. Phase 2: launch offer-path experiments and nurture sequence. Phase 3: optimize conversion assets from response data." },
+    "work_weve_done": { "label": "Work We've Done", "static_content": "Opika has repeatedly improved conversion outcomes by restructuring buyer journeys around proof, relevance, and timing rather than adding more channels." },
+    "ask": { "label": "What We're Asking", "static_content": "Partner in a focused sprint to refine your path from attention to action. You bring expertise and feedback; we build the system and optimize every handoff." }
+  }
+}

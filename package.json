@@ -1,0 +1,10 @@
+{
+  "name": "emm-docx-generator",
+  "version": "1.0.0",
+  "scripts": {
+    "generate": "node app/document/generate.js"
+  },
+  "dependencies": {
+    "docx": "^8.5.0"
+  }
+}
