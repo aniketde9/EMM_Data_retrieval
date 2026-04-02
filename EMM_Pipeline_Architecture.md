@@ -8,7 +8,7 @@
 
 This system takes 5 human inputs about a book author, autonomously scrapes all public data about them, runs one Claude API intelligence call, assembles a fully branded Opika EMM document, and outputs a PDF. Zero manual steps between input submission and finished PDF.
 
-**Stack:** Python (FastAPI + Celery + Redis) · Node.js (docx generation) · Playwright · BeautifulSoup · LinkdAPI · Anthropic Claude API · LibreOffice (PDF conversion)
+**Stack:** Python (FastAPI + Celery + Redis) · Node.js (docx generation) · BeautifulSoup · LinkdAPI · Anthropic Claude API · LibreOffice (PDF conversion)
 
 ---
 
@@ -1332,8 +1332,7 @@ celery==5.4.0
 redis==5.0.8
 requests==2.32.3
 beautifulsoup4==4.12.3
-playwright==1.47.0
-pillow==10.4.0
+pillow==12.2.0
 anthropic==0.40.0
 python-dotenv==1.0.1
 aiohttp==3.10.5
@@ -1373,32 +1372,29 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # 3. Install Python dependencies
 pip install -r requirements.txt
 
-# 4. Install Playwright browsers
-playwright install chromium
-
-# 5. Install Node.js dependencies
+# 4. Install Node.js dependencies
 npm install
 
-# 6. Install LibreOffice (for PDF conversion)
+# 5. Install LibreOffice (for PDF conversion)
 # macOS:
 brew install libreoffice
 # Ubuntu/Debian:
 sudo apt-get install libreoffice
 
-# 7. Copy and fill in .env
+# 6. Copy and fill in .env
 cp .env.example .env
 # Edit .env with your API keys
 
-# 8. Start Redis (required for job queue)
+# 7. Start Redis (required for job queue)
 # macOS:
 brew services start redis
 # Ubuntu:
 sudo systemctl start redis
 
-# 9. Start Celery worker (in separate terminal)
+# 8. Start Celery worker (in separate terminal)
 celery -A app.worker.celery_app worker --loglevel=info
 
-# 10. Start FastAPI app
+# 9. Start FastAPI app
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
