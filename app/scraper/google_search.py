@@ -4,17 +4,6 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-from app.config import settings
-
-
-def find_linkedin_username(author_name: str) -> str:
-    results = _search(f'"{author_name}" site:linkedin.com/in')
-    for r in results:
-        url = r.get("url", "")
-        if "linkedin.com/in/" in url:
-            return url.split("linkedin.com/in/")[1].split("/")[0].split("?")[0]
-    raise ValueError(f"Could not find LinkedIn username for {author_name}")
-
 
 def find_press(author_name: str) -> list:
     results = _search(f'"{author_name}" interview OR profile OR featured', num=5)
@@ -51,21 +40,8 @@ def find_podcasts(author_name: str) -> list:
 
 
 def _search(query: str, num: int = 5) -> list:
-    if settings.SERPAPI_KEY:
-        return _serpapi_search(query, num)
     time.sleep(random.uniform(2, 4))
     return _google_scrape(query, num)
-
-
-def _serpapi_search(query: str, num: int) -> list:
-    resp = requests.get(
-        "https://serpapi.com/search",
-        params={"q": query, "num": num, "api_key": settings.SERPAPI_KEY},
-        timeout=15,
-    )
-    resp.raise_for_status()
-    results = resp.json().get("organic_results", [])
-    return [{"url": r.get("link"), "title": r.get("title"), "source": r.get("source", "")} for r in results]
 
 
 def _google_scrape(query: str, num: int) -> list:

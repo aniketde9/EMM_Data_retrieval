@@ -17,10 +17,7 @@ async def _run_parallel(*func_calls):
 def run_emm_pipeline(job_id: str, inputs: dict):
     try:
         update_status(job_id, "scraping_linkedin")
-        if not inputs.get("linkedin_username"):
-            inputs["linkedin_username"] = google_search.find_linkedin_username(inputs["author_name"])
-
-        profile_data = linkedin.get_full_profile(inputs["linkedin_username"])
+        profile_data = linkedin.get_full_profile(inputs["linkedin_username"].strip())
         urn = profile_data.get("urn", "")
         posts_data, articles_data = asyncio.run(
             _run_parallel(

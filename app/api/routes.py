@@ -1,10 +1,9 @@
 import os
 import uuid
-from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 from app.config import settings
 from app.utils.job_store import create_job, get_job
@@ -18,8 +17,16 @@ class SubmitRequest(BaseModel):
     author_name: str
     book_title: str
     website_url: HttpUrl
-    linkedin_username: Optional[str] = None
+    linkedin_username: str = Field(min_length=1)
     amazon_url: HttpUrl
+
+    @field_validator("linkedin_username")
+    @classmethod
+    def strip_linkedin_username(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("linkedin_username is required")
+        return stripped
 
 
 @router.post("/submit")

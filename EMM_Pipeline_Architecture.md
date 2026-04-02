@@ -95,13 +95,6 @@ LINKDAPI_BASE_URL=https://linkdapi.com
 REDIS_URL=redis://localhost:6379/0
 
 # ─────────────────────────────────────────
-# GOOGLE SEARCH
-# If using SerpAPI (recommended for production)
-# If blank, falls back to direct Google scraping with delays
-# ─────────────────────────────────────────
-SERPAPI_KEY=your_serpapi_key_here_or_leave_blank
-
-# ─────────────────────────────────────────
 # OPIKA BRANDING
 # ─────────────────────────────────────────
 OPIKA_LOGO_URL=https://drive.google.com/uc?export=download&id=1c7yetV5g43PlFp59QgTy5IGUbqEfvEDt
@@ -129,7 +122,6 @@ CLAUDE_MODEL=claude-sonnet-4-6
 LINKDAPI_API_KEY=
 LINKDAPI_BASE_URL=https://linkdapi.com
 REDIS_URL=redis://localhost:6379/0
-SERPAPI_KEY=
 OPIKA_LOGO_URL=
 OUTPUT_DIR=./outputs
 APP_HOST=0.0.0.0
@@ -148,7 +140,7 @@ Plain HTML form. No framework. Submits to `POST /api/submit`.
 Author Name         (text, required)
 Book Title          (text, required)
 Author Website URL  (url, required)
-LinkedIn Username   (text, optional — if blank, pipeline attempts auto-lookup)
+LinkedIn Username   (text, required)
 Amazon Book URL     (url, required)
 ```
 
@@ -171,7 +163,7 @@ On submit: POST to `/api/submit` → receives `{ job_id, status: "queued" }` →
 
 ```python
 POST /api/submit
-  Body: { author_name, book_title, website_url, linkedin_username (optional), amazon_url }
+  Body: { author_name, book_title, website_url, linkedin_username, amazon_url }
   Action: validates inputs, creates job in Redis, enqueues Celery task
   Returns: { job_id: str, status: "queued" }
 
@@ -196,13 +188,7 @@ def run_emm_pipeline(job_id: str, inputs: dict):
     try:
         update_status(job_id, "scraping_linkedin")
 
-        # Step 1: Get LinkedIn username if not provided
-        if not inputs.get("linkedin_username"):
-            inputs["linkedin_username"] = scraper.google_search.find_linkedin_username(
-                inputs["author_name"]
-            )
-
-        # Step 2: LinkedIn data via LinkdAPI (sequential: profile first, then posts + articles parallel)
+        # Step 1: LinkedIn data via LinkdAPI (profile first, then posts + articles parallel)
         profile_data = scraper.linkedin.get_full_profile(inputs["linkedin_username"])
         urn = profile_data["urn"]
 
@@ -213,7 +199,7 @@ def run_emm_pipeline(job_id: str, inputs: dict):
 
         update_status(job_id, "scraping_web")
 
-        # Step 3: Web scraping (all parallel)
+        # Step 2: Web scraping (all parallel)
         amazon_data, goodreads_data, website_data, press_data, podcast_data, books_data = asyncio.gather(
             scraper.amazon.scrape(inputs["amazon_url"]),
             scraper.goodreads.scrape(inputs["book_title"], inputs["author_name"]),
@@ -225,7 +211,7 @@ def run_emm_pipeline(job_id: str, inputs: dict):
 
         update_status(job_id, "reviewing")
 
-        # Step 4: Assemble structured dossier
+        # Step 3: Assemble structured dossier
         dossier = scraper.assembler.build(
             inputs=inputs,
             profile=profile_data,
@@ -241,26 +227,26 @@ def run_emm_pipeline(job_id: str, inputs: dict):
 
         update_status(job_id, "generating")
 
-        # Step 5: Single Claude intelligence call
+        # Step 4: Single Claude intelligence call
         claude_output = intelligence.claude_call.run(dossier)
 
         update_status(job_id, "assembling")
 
-        # Step 6: Select EMM body based on cluster diagnosis
+        # Step 5: Select EMM body based on cluster diagnosis
         body = emm.selector.select(claude_output["CLUSTER"])
 
-        # Step 7: Merge Claude output + dossier into body
+        # Step 6: Merge Claude output + dossier into body
         merged_content = emm.merger.merge(body, claude_output, dossier)
 
         update_status(job_id, "exporting")
 
-        # Step 8: Generate branded .docx
+        # Step 7: Generate branded .docx
         docx_path = document.generate.build(merged_content, job_id)
 
-        # Step 9: Convert to PDF
+        # Step 8: Convert to PDF
         pdf_path = document.pdf_converter.convert(docx_path, job_id)
 
-        # Step 10: Done
+        # Step 9: Done
         update_status(job_id, "complete", pdf_path=pdf_path)
 
     except Exception as e:
@@ -344,122 +330,30 @@ def get_articles(urn: str) -> list:
 
 ### app/scraper/google_search.py
 
-Handles three search tasks: LinkedIn username lookup, press coverage, podcast appearances.
+Handles press coverage and podcast appearances via Google result pages (no SerpAPI). LinkedIn username is always supplied by the client; there is no Google-based LinkedIn lookup.
 
-Uses SerpAPI if key is set. Falls back to direct Google scrape with delays if not.
+Uses direct Google HTML scraping with random delays between requests for basic rate limiting.
 
 ```python
 import time
 import random
 import requests
 from bs4 import BeautifulSoup
-from app.config import settings
-
-def find_linkedin_username(author_name: str) -> str:
-    """
-    Search: "{author_name}" site:linkedin.com/in
-    Parse the first result URL, extract username from path.
-    e.g. https://linkedin.com/in/rainbennett → "rainbennett"
-    """
-    results = _search(f'"{author_name}" site:linkedin.com/in')
-    for r in results:
-        url = r.get("url", "")
-        if "linkedin.com/in/" in url:
-            username = url.split("linkedin.com/in/")[1].split("/")[0].split("?")[0]
-            if username:
-                return username
-    raise ValueError(f"Could not find LinkedIn username for {author_name}")
-
 
 def find_press(author_name: str) -> list:
-    """
-    Search: "{author_name}" interview OR profile OR featured
-    Fetch top 5 result pages, extract article text.
-    Returns list of dicts: { source, title, url, excerpt }
-    """
     results = _search(f'"{author_name}" interview OR profile OR featured', num=5)
-    articles = []
-    for r in results:
-        text = _fetch_page_text(r["url"])
-        if text:
-            articles.append({
-                "source": r.get("source", ""),
-                "title": r.get("title", ""),
-                "url": r["url"],
-                "excerpt": text[:1500]  # first 1500 chars
-            })
-    return articles
-
+    ...
 
 def find_podcasts(author_name: str) -> list:
-    """
-    Search: "{author_name}" podcast interview
-    Fetch top 5 result pages, extract episode title + show notes.
-    Returns list of dicts: { show, episode_title, url, notes }
-    """
     results = _search(f'"{author_name}" podcast interview', num=5)
-    episodes = []
-    for r in results:
-        text = _fetch_page_text(r["url"])
-        if text:
-            episodes.append({
-                "show": r.get("source", ""),
-                "episode_title": r.get("title", ""),
-                "url": r["url"],
-                "notes": text[:1500]
-            })
-    return episodes
-
+    ...
 
 def _search(query: str, num: int = 5) -> list:
-    """Internal: run search via SerpAPI or direct Google scrape."""
-    if settings.SERPAPI_KEY:
-        return _serpapi_search(query, num)
-    else:
-        time.sleep(random.uniform(2, 4))  # rate limit protection
-        return _google_scrape(query, num)
-
-
-def _serpapi_search(query: str, num: int) -> list:
-    resp = requests.get(
-        "https://serpapi.com/search",
-        params={"q": query, "num": num, "api_key": settings.SERPAPI_KEY},
-        timeout=15
-    )
-    resp.raise_for_status()
-    results = resp.json().get("organic_results", [])
-    return [{"url": r.get("link"), "title": r.get("title"), "source": r.get("source")} for r in results]
-
+    time.sleep(random.uniform(2, 4))
+    return _google_scrape(query, num)
 
 def _google_scrape(query: str, num: int) -> list:
-    url = f"https://www.google.com/search?q={requests.utils.quote(query)}&num={num}"
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; research-bot/1.0)"}
-    resp = requests.get(url, headers=headers, timeout=15)
-    soup = BeautifulSoup(resp.text, "html.parser")
-    results = []
-    for g in soup.select("div.g")[:num]:
-        link = g.select_one("a")
-        title = g.select_one("h3")
-        if link and title:
-            results.append({
-                "url": link["href"],
-                "title": title.text,
-                "source": ""
-            })
-    return results
-
-
-def _fetch_page_text(url: str) -> str:
-    try:
-        headers = {"User-Agent": "Mozilla/5.0 (compatible; research-bot/1.0)"}
-        resp = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        # Remove scripts and styles
-        for tag in soup(["script", "style", "nav", "footer"]):
-            tag.decompose()
-        return soup.get_text(separator=" ", strip=True)[:3000]
-    except Exception:
-        return ""
+    ...
 ```
 
 ---

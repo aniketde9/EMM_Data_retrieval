@@ -18,7 +18,7 @@
     <input name="author_name" placeholder="Author Name" required />
     <input name="book_title" placeholder="Book Title" required />
     <input type="url" name="website_url" placeholder="Author Website URL" required />
-    <input name="linkedin_username" placeholder="LinkedIn Username (optional)" />
+    <input name="linkedin_username" placeholder="LinkedIn Username" required />
     <input type="url" name="amazon_url" placeholder="Amazon Book URL" required />
     <button type="submit">Submit</button>
   </form>
@@ -49,7 +49,6 @@
 
       const formData = new FormData(form);
       const payload = Object.fromEntries(formData.entries());
-      if (!payload.linkedin_username) delete payload.linkedin_username;
 
       const res = await fetch("/api/submit", {
         method: "POST",
