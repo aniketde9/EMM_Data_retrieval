@@ -1,9 +1,8 @@
 import asyncio
+import json
+import os
 
 from app.config import settings
-from app.document import generate, pdf_converter
-from app.emm import merger, selector
-from app.intelligence import claude_call
 from app.scraper import amazon, assembler, goodreads, google_books, google_search, linkedin, website
 from app.utils.job_store import update_status
 from app.worker.celery_app import celery_app
@@ -39,7 +38,7 @@ def run_emm_pipeline(job_id: str, inputs: dict):
         )
 
         update_status(job_id, "reviewing")
-        dossier = assembler.build(
+        research = assembler.build_research_export(
             inputs=inputs,
             profile=profile_data,
             posts=posts_data,
@@ -52,18 +51,13 @@ def run_emm_pipeline(job_id: str, inputs: dict):
             books=books_data,
         )
 
-        update_status(job_id, "generating")
-        claude_output = claude_call.run(dossier)
-
-        update_status(job_id, "assembling")
-        body = selector.select(claude_output.get("CLUSTER", "Discovery"))
-        merged_content = merger.merge(body, claude_output, dossier)
-
         update_status(job_id, "exporting")
-        docx_path = generate.build(merged_content, job_id)
-        pdf_path = pdf_converter.convert(docx_path, job_id, output_dir=settings.OUTPUT_DIR)
+        os.makedirs(settings.OUTPUT_DIR, exist_ok=True)
+        out_path = os.path.join(settings.OUTPUT_DIR, f"{job_id}_research.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(research, f, indent=2, ensure_ascii=False, default=str)
 
-        update_status(job_id, "complete", pdf_path=pdf_path)
+        update_status(job_id, "complete", result_path=out_path)
     except Exception as exc:
         update_status(job_id, "failed", error=str(exc))
         raise

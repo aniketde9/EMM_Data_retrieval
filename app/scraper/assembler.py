@@ -1,3 +1,41 @@
+def build_research_export(
+    inputs: dict,
+    profile: dict,
+    posts: list,
+    articles: list,
+    amazon: dict,
+    goodreads: dict,
+    website: dict,
+    press: list,
+    podcasts: list,
+    books: list,
+) -> dict:
+    """
+    Full research bundle for JSON download: raw API/scrape payloads plus normalized dossier.
+    """
+    return {
+        "submitted_inputs": {
+            "author_name": inputs.get("author_name", ""),
+            "book_title": inputs.get("book_title", ""),
+            "website_url": inputs.get("website_url", ""),
+            "linkedin_username": inputs.get("linkedin_username", ""),
+            "amazon_url": inputs.get("amazon_url", ""),
+        },
+        "raw_sources": {
+            "linkedin_profile": profile,
+            "linkedin_posts": posts,
+            "linkedin_articles": articles,
+            "amazon_product_page": amazon,
+            "goodreads": goodreads,
+            "author_website": website,
+            "press_coverage": press,
+            "podcast_appearances": podcasts,
+            "google_books": books,
+        },
+        "normalized_dossier": build(inputs, profile, posts, articles, amazon, goodreads, website, press, podcasts, books),
+    }
+
+
 def build(inputs, profile, posts, articles, amazon, goodreads, website, press, podcasts, books) -> dict:
     return {
         "author_name": inputs["author_name"],

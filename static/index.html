@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-  <h1>Extra Mile Method Automation</h1>
+  <h1>Author research (JSON export)</h1>
   <form id="emm-form">
     <input name="author_name" placeholder="Author Name" required />
     <input name="book_title" placeholder="Book Title" required />
@@ -24,7 +24,7 @@
   </form>
 
   <div id="status"></div>
-  <a id="download" href="#">Download PDF</a>
+  <a id="download" href="#">Download research JSON</a>
 
   <script>
     const statusMap = {
@@ -32,9 +32,9 @@
       scraping_linkedin: "Pulling LinkedIn data...",
       scraping_web: "Researching author across the web...",
       reviewing: "Building research dossier...",
-      generating: "Running intelligence analysis...",
-      assembling: "Assembling EMM document...",
-      exporting: "Generating PDF...",
+      generating: "Finalizing research...",
+      assembling: "Finalizing research...",
+      exporting: "Saving research JSON...",
       complete: "Done. Download ready.",
       failed: "Something went wrong."
     };

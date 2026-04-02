@@ -17,6 +17,7 @@ def create_job(job_id: str, inputs: dict[str, Any]) -> None:
         "status": "queued",
         "message": "",
         "pdf_path": "",
+        "result_path": "",
         "error": "",
         "created_at": now,
         "updated_at": now,
@@ -30,6 +31,7 @@ def update_status(
     status: str,
     message: str = "",
     pdf_path: str = "",
+    result_path: str = "",
     error: str = "",
 ) -> None:
     raw = r.get(f"job:{job_id}")
@@ -40,6 +42,8 @@ def update_status(
     data["message"] = message
     if pdf_path:
         data["pdf_path"] = pdf_path
+    if result_path:
+        data["result_path"] = result_path
     if error:
         data["error"] = error
     data["updated_at"] = time.time()

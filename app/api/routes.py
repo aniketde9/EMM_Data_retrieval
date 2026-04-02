@@ -53,7 +53,15 @@ def download(job_id: str) -> FileResponse:
     job = get_job(job_id)
     if not job or job.get("status") != "complete":
         raise HTTPException(status_code=404, detail="File not available")
-    pdf_path = job.get("pdf_path") or os.path.join(settings.OUTPUT_DIR, f"{job_id}.pdf")
-    if not os.path.exists(pdf_path):
-        raise HTTPException(status_code=404, detail="PDF not found")
-    return FileResponse(pdf_path, media_type="application/pdf", filename=os.path.basename(pdf_path))
+    path = job.get("result_path") or job.get("pdf_path")
+    if not path:
+        path = os.path.join(settings.OUTPUT_DIR, f"{job_id}_research.json")
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Output file not found")
+    if path.lower().endswith(".json"):
+        return FileResponse(
+            path,
+            media_type="application/json",
+            filename=os.path.basename(path),
+        )
+    return FileResponse(path, media_type="application/pdf", filename=os.path.basename(path))
