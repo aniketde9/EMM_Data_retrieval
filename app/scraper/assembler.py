@@ -9,6 +9,7 @@ def build_research_export(
     press: list,
     podcasts: list,
     books: list,
+    warnings: list[str] | None = None,
 ) -> dict:
     """
     Full research bundle for JSON download: raw API/scrape payloads plus normalized dossier.
@@ -32,6 +33,7 @@ def build_research_export(
             "podcast_appearances": podcasts,
             "google_books": books,
         },
+        "warnings": warnings or [],
         "normalized_dossier": build(inputs, profile, posts, articles, amazon, goodreads, website, press, podcasts, books),
     }
 

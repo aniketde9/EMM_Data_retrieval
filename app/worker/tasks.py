@@ -12,9 +12,17 @@ async def _run_parallel(*func_calls):
     return await asyncio.gather(*(asyncio.to_thread(func, *args) for func, args in func_calls))
 
 
+def _safe_google_call(func, *args):
+    try:
+        return func(*args), ""
+    except Exception as exc:
+        return [], f"{func.__name__} failed: {exc}"
+
+
 @celery_app.task(name="app.worker.tasks.run_emm_pipeline")
 def run_emm_pipeline(job_id: str, inputs: dict):
     try:
+        warnings = []
         update_status(job_id, "scraping_linkedin")
         profile_data = linkedin.get_full_profile(inputs["linkedin_username"].strip())
         urn = profile_data.get("urn", "")
@@ -26,16 +34,22 @@ def run_emm_pipeline(job_id: str, inputs: dict):
         )
 
         update_status(job_id, "scraping_web")
-        amazon_data, goodreads_data, website_data, press_data, podcast_data, books_data = asyncio.run(
+        amazon_data, goodreads_data, website_data = asyncio.run(
             _run_parallel(
                 (amazon.scrape, (inputs["amazon_url"],)),
                 (goodreads.scrape, (inputs["book_title"], inputs["author_name"])),
                 (website.scrape, (inputs["website_url"],)),
-                (google_search.find_press, (inputs["author_name"],)),
-                (google_search.find_podcasts, (inputs["author_name"],)),
-                (google_books.find_all_books, (inputs["author_name"],)),
             )
         )
+        press_data, warning = _safe_google_call(google_search.find_press, inputs["author_name"])
+        if warning:
+            warnings.append(warning)
+        podcast_data, warning = _safe_google_call(google_search.find_podcasts, inputs["author_name"])
+        if warning:
+            warnings.append(warning)
+        books_data, warning = _safe_google_call(google_books.find_all_books, inputs["author_name"])
+        if warning:
+            warnings.append(warning)
 
         update_status(job_id, "reviewing")
         research = assembler.build_research_export(
@@ -49,6 +63,7 @@ def run_emm_pipeline(job_id: str, inputs: dict):
             press=press_data,
             podcasts=podcast_data,
             books=books_data,
+            warnings=warnings,
         )
 
         update_status(job_id, "exporting")
