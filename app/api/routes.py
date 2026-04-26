@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 from app.config import settings
 from app.utils.job_store import create_job, get_job
+from app.utils.output_names import research_json_path
 from app.worker.tasks import run_emm_pipeline
 
 
@@ -53,10 +54,16 @@ def download(job_id: str) -> FileResponse:
     job = get_job(job_id)
     if not job or job.get("status") != "complete":
         raise HTTPException(status_code=404, detail="File not available")
-    path = job.get("result_path") or job.get("pdf_path")
+    inputs = job.get("inputs") or {}
+    author_name = inputs.get("author_name", "")
+    candidates = [
+        job.get("result_path") or "",
+        job.get("pdf_path") or "",
+        research_json_path(settings.OUTPUT_DIR, author_name, job_id),
+        os.path.join(settings.OUTPUT_DIR, f"{job_id}_research.json"),
+    ]
+    path = next((p for p in candidates if p and os.path.exists(p)), "")
     if not path:
-        path = os.path.join(settings.OUTPUT_DIR, f"{job_id}_research.json")
-    if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Output file not found")
     if path.lower().endswith(".json"):
         return FileResponse(

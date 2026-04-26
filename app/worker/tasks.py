@@ -5,6 +5,7 @@ import os
 from app.config import settings
 from app.scraper import amazon, assembler, goodreads, google_books, google_search, linkedin, website
 from app.utils.job_store import update_status
+from app.utils.output_names import research_json_path
 from app.worker.celery_app import celery_app
 
 
@@ -68,7 +69,11 @@ def run_emm_pipeline(job_id: str, inputs: dict):
 
         update_status(job_id, "exporting")
         os.makedirs(settings.OUTPUT_DIR, exist_ok=True)
-        out_path = os.path.join(settings.OUTPUT_DIR, f"{job_id}_research.json")
+        out_path = research_json_path(
+            settings.OUTPUT_DIR,
+            inputs.get("author_name", ""),
+            job_id,
+        )
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(research, f, indent=2, ensure_ascii=False, default=str)
 
